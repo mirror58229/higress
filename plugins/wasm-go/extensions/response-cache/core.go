@@ -76,17 +76,6 @@ func logAndReturnError(log wrapper.Log, message string) error {
 	return errors.New(message)
 }
 
-// handleInternalError logs an error and resumes the HTTP request.
-func handleInternalError(err error, message string, log wrapper.Log) {
-	if err != nil {
-		log.Errorf("[%s] [handleInternalError] %s: %v", PLUGIN_NAME, message, err)
-	} else {
-		log.Errorf("[%s] [handleInternalError] %s", PLUGIN_NAME, message)
-	}
-	// proxywasm.SendHttpResponse(500, [][2]string{{"content-type", "text/plain"}}, []byte("Internal Server Error"), -1)
-	proxywasm.ResumeHttpRequest()
-}
-
 // Caches the response value
 func cacheResponse(ctx wrapper.HttpContext, c config.PluginConfig, key string, value string, log wrapper.Log) {
 	if strings.TrimSpace(value) == "" {

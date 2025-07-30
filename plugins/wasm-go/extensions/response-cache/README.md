@@ -47,21 +47,29 @@ description: 通用响应缓存插件配置参考
 | Name | Type | Requirement | Default | Description |
 | --- | --- | --- | --- | --- |
 | cacheResponseCode | array of number | optional | 200 | 表示支持缓存的响应状态码列表；默认为200|
-| cacheKeyFromHeader | string | required | "" | 表示提取header中的固定字段的值作为缓存key；cacheKeyFromHeader和cacheKeyFromBody**非空情况下只支持配置一项**|
-| cacheKeyFromBody | string | required | "" | 配置为空时，表示提取所有body作为缓存key；否则按json响应格式，从请求 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串 |
-| cacheValueFromBodyType | string | optional | "application/json" | 表示缓存body的类型，命中cache时content-type会返回该值；默认为json |
-| cacheValueFromBody | string | optional | "" | 配置为空时，表示缓存所有body；当cacheValueFromBodyType为json时，支持从响应 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串 |
+| cacheKeyFromHeader | string | required | "" | 表示提取header中的固定字段的值作为缓存key；该字段配置为空时不生效；`cacheKeyFromHeader`和`cacheKeyFromBody`**非空情况下只支持配置一项**，不允许同时配置为非空|
+| cacheKeyFromBody | string | required | "" | 表示按`application/json`响应格式，从请求 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串作为缓存key；该字段配置为空时，表示提取所有body作为缓存key |
+| cacheValueFromBodyType | string | optional | "application/json" | 表示缓存body的类型，命中cache时content-type会返回该值；默认为`application/json`；当配置为空时，表明使用响应类型作为缓存内容一部分 |
+| cacheValueFromBody | string | optional | "" | 表示当响应的`Content-Type`为`application/json`时，支持从响应 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串作为缓存value；该字段配置为空时，表示提取所有body作为缓存value |
 
-其中，缓存key的拼接逻辑为以下中一个： 
-1. `cacheKeyPrefix` + 从请求头中`cacheKeyFromHeader`对应字段提取的内容
-2. `cacheKeyPrefix` + 从请求体中`cacheKeyFromBody`对应字段提取的内容
+### 缓存配置说明
+缓存key的拼接逻辑如下：
+
+【**注意：**`cacheKeyFromHeader` 和 `cacheKeyFromBody` 只支持一个非空配置，且非空情况下`cacheKeyFromHeader`优先级高于`cacheKeyFromBody`】
+
+1. `cacheKeyFromHeader != ""`, 则缓存key为: `cacheKeyPrefix` + 从请求头中`cacheKeyFromHeader`对应字段提取的内容。如请求头中不存在对应字段，则此次请求跳过缓存。
+2. `cacheKeyFromHeader = ""` 且 `cacheKeyFromBody = ""`, 则缓存key为: `cacheKeyPrefix` + 请求体。如请求体为空，则此次请求跳过缓存。
+3. `cacheKeyFromHeader = ""` 且 `cacheKeyFromBody != ""`, 则缓存key为: `cacheKeyPrefix` + 从请求体中`cacheKeyFromBody`对应字段提取的内容。如请求体提取中不存在对应字段，则此次请求跳过缓存。
 
 
-命中缓存插件的情况下，返回的响应头中有三种状态：
+命中缓存插件的情况下，返回的响应头使用`x-cache-status`表示有三种状态：
 - `x-cache-status: hit` ，表示命中缓存，直接返回缓存内容
 - `x-cache-status: miss` ，表示未命中缓存，返回后端响应结果
-- `x-cache-status: skip` ，表示跳过缓存检查
-
+- `x-cache-status: skip` ，表示跳过缓存检查，返回后端响应结果；包含所有提取值不正确的情况
+ 
+命中缓存时，响应类型由`cacheValueFromBodyType`决定：
+- 当`cacheValueFromBodyType != ""`时，响应中返回的`Content-Type`为`cacheValueFromBodyType`配置的结果；当前默认配置为`application/json`。
+- 当`cacheValueFromBodyType = ""`时，响应中返回的`Content-Type`为原请求对应的响应缓存前的`Content-Type`。
 
 ## 配置示例
 ### 基础配置
@@ -133,3 +141,4 @@ GJSON PATH 也支持条件判断语法，例如希望取最后一个 role 为 us
 ## 常见问题
 
 1. 如果返回的错误为 `error status returned by host: bad argument`，请检查`serviceName`是否正确包含了服务的类型后缀(.dns等)。
+2. 如果返回的错误为 `gRPC config for type.googleapis.com/envoy.config.core.v3.TypedExtensionConfig rejected: Unable to create Wasm HTTP filter`，请检查`servicePort`是否配置正确；比如，`.static` 类型需要配置端口为`80`。

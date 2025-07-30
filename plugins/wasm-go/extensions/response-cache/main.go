@@ -56,7 +56,7 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, c config.PluginConfig, log wr
 
 	// cache from request header
 	if c.CacheKeyFromHeader != "" {
-		key, _ := proxywasm.GetHttpRequestHeader((c.CacheKeyFromHeader))
+		key, _ := proxywasm.GetHttpRequestHeader(c.CacheKeyFromHeader)
 		if key == "" {
 			log.Warnf("[onHttpRequestHeaders] cache key from header: %s is empty, skip cache", c.CacheKeyFromHeader)
 			ctx.DontReadRequestBody()
@@ -72,7 +72,7 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, c config.PluginConfig, log wr
 		ctx.DisableReroute()
 		_ = proxywasm.RemoveHttpRequestHeader("Accept-Encoding")
 		ctx.DontReadRequestBody()
-		return types.ActionContinue
+		return types.ActionPause
 	}
 
 	// cache from request body but does not have a body or not json format
@@ -103,7 +103,7 @@ func onHttpRequestBody(ctx wrapper.HttpContext, c config.PluginConfig, body []by
 		key = bodyJson.Get(c.CacheKeyFromBody).String()
 	
 		if key == "" {
-			log.Debug("[onHttpRequestBody] parse key from request body failed")
+			log.Debugf("[onHttpRequestBody] parse key from request body failed")
 			ctx.DontReadResponseBody()
 			return types.ActionContinue
 		}
@@ -124,9 +124,26 @@ func onHttpRequestBody(ctx wrapper.HttpContext, c config.PluginConfig, body []by
 }
 
 func onHttpResponseHeaders(ctx wrapper.HttpContext, c config.PluginConfig, log wrapper.Log) types.Action {
+	skipCache := ctx.GetContext(SKIP_CACHE_HEADER)
+	if skipCache != nil {
+		log.Debugf("[onHttpResponseHeader] detect skip cache header, skip cache")
+		proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
+		ctx.DontReadResponseBody()
+		return types.ActionContinue
+	}
+
+	key := ctx.GetContext(CACHE_KEY_CONTEXT_KEY)
+	if key == nil {
+		log.Debugf("[onHttpResponseHeader] cache key is nil, skip cache")
+		proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
+		ctx.DontReadResponseBody()
+		return types.ActionContinue
+	}
+
 	status, err := proxywasm.GetHttpResponseHeader(":status")
 	if err != nil {
-		log.Errorf("[onHttpResponseBody] unable to load :status header from response: %v", err)
+		log.Errorf("[onHttpResponseHeader] unable to load :status header from response: %v, skip cache", err)
+		proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
 		ctx.DontReadResponseBody()
 		return types.ActionContinue
 	}
@@ -141,18 +158,12 @@ func onHttpResponseHeaders(ctx wrapper.HttpContext, c config.PluginConfig, log w
 		}
 	}
 	if !found {
-		log.Infof("[onHttpResponseBody] status not allow to cached: %s",status)
+		log.Infof("[onHttpResponseHeader] status not allow to cached: %s, skip cache",status)
 		proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
 		ctx.DontReadResponseBody()
 		return types.ActionContinue
 	}
 	
-	skipCache := ctx.GetContext(SKIP_CACHE_HEADER)
-	if skipCache != nil {
-		proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
-		ctx.DontReadResponseBody()
-		return types.ActionContinue
-	}
 	if ctx.GetContext(CACHE_KEY_CONTEXT_KEY) != nil {
 		proxywasm.AddHttpResponseHeader("x-cache-status", "miss")
 	}
@@ -161,10 +172,11 @@ func onHttpResponseHeaders(ctx wrapper.HttpContext, c config.PluginConfig, log w
 }
 
 func onHttpResponseBody(ctx wrapper.HttpContext, c config.PluginConfig, body []byte, log wrapper.Log) types.Action {
-
 	key := ctx.GetContext(CACHE_KEY_CONTEXT_KEY)
 	if key == nil {
-		log.Debug("[onHttpResponseBody] key is nil, skip cache")
+		// will never reached here, this condition has been considered in onHttpResponseHeaders
+		log.Debugf("[onHttpResponseBody] cache key is nil, skip cache")
+		proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
 		return types.ActionContinue
 	}
 

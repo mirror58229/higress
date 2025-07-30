@@ -47,8 +47,8 @@ func (c *PluginConfig) FromJson(json gjson.Result, log wrapper.Log) {
 		c.CacheResponseCode = append(c.CacheResponseCode, int32(responseCode))
 	}
 
-	if len(c.CacheResponseCode) == 0 { 
-		c.CacheResponseCode = []int32{200}	
+	if len(c.CacheResponseCode) == 0 {
+		c.CacheResponseCode = []int32{200}
     }
 }
 

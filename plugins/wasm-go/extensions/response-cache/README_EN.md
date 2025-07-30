@@ -33,23 +33,30 @@ Plugin Execution Priority: `10`
 | Name | Type | Requirement | Default | Description |
 | --- | --- | --- | --- | --- |
 | cacheResponseCode | array of number | optional | 200 | Indicates the list of response status codes that support caching; the default is 200.|
-| cacheKeyFromHeader | string | required | "" | Extracts a fixed field's value from headers as the cache key; **only one of cacheKeyFromHeader and cacheKeyFromBody can be configured when both are non-empty**|
-| cacheKeyFromBody | string | required | "" | If empty, extracts all body as the cache key; otherwise, extracts a string from the request body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) |
-| cacheValueFromBodyType | string | optional | "application/json" | Indicates the type of cached body; the content-type returned on cache hit will be this value; default is JSON |
-| cacheValueFromBody | string | optional | "" | If empty, caches all body; when cacheValueFromBodyType is JSON, supports extracting a string from the response body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) |
+| cacheKeyFromHeader | string | required | "" | Indicates extracting the value of a fixed field from header as cache key; this field does not take effect when configured as empty; `cacheKeyFromHeader` and `cacheKeyFromBody` **only one of them can be configured as non-empty** when both are non-empty |
+| cacheKeyFromBody | string | required | "" | Indicates extracting a string as cache key from request Body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) syntax in `application/json` response format; when this field is configured as empty, it means extracting the entire body as cache key |
+| cacheValueFromBodyType | string | optional | "application/json" | Indicates the type of cached body, content-type will return this value when cache is hit; default is `application/json`; when configured as empty, it means using the response type as part of the cached content |
+| cacheValueFromBody | string | optional | "" | Indicates that when the response `Content-Type` is `application/json`, it supports extracting a string as cache value from response Body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) syntax; when this field is configured as empty, it means extracting the entire body as cache value |
+
+### Cache Configuration Description
+The cache key concatenation logic is as follows:
+
+[**Note:** `cacheKeyFromHeader` and `cacheKeyFromBody` only support one non-empty configuration, and `cacheKeyFromHeader` has higher priority than `cacheKeyFromBody` in non-empty cases]
+
+1. `cacheKeyFromHeader != ""`, then the cache key is: `cacheKeyPrefix` + the content extracted from the `cacheKeyFromHeader` corresponding field in the request header. If the corresponding field does not exist in the request header, this request will skip following process of cache plugin.
+2. `cacheKeyFromHeader = ""` and `cacheKeyFromBody = ""`, then the cache key is: `cacheKeyPrefix` + request body. If the request body is empty, this request will skip following process of cache plugin.
+3. `cacheKeyFromHeader = ""` and `cacheKeyFromBody != ""`, then the cache key is: `cacheKeyPrefix` + the content extracted from the `cacheKeyFromBody` corresponding field in the request body. If the corresponding field does not exist in the request body extraction, this request will skip following process of cache plugin.
 
 
-The logic for concatenating the cache key is one of the following:
-
-1. `cacheKeyPrefix` + content extracted from the field corresponding to `cacheKeyFromHeader` in the request header
-2. `cacheKeyPrefix` + content extracted from the field corresponding to `cacheKeyFromBody` in the request body
-
-In the case of hitting the cache plugin, there are three statuses in the returned response headers:
-
-- `x-cache-status: hit` , indicating a cache hit and cached content is returned directly
-- `x-cache-status: miss` , indicating a cache miss and backend response results are returned
-- `x-cache-status: skip` , indicating skipping the cache check
-
+When processed by cache plugin, the response header uses `x-cache-status` to indicate three states:
+- `x-cache-status: hit`, indicates that the cache was hit and the cached content is returned directly
+- `x-cache-status: miss`, indicates that the cache was not hit and the backend response result is returned
+- `x-cache-status: skip`, indicates that the cache check was skipped and the backend response result is returned; including all cases where the extracted value is incorrect
+ 
+When hitted the cache, the type of response is determined by `cacheValueFromBodyType`:
+- When `cacheValueFromBodyType != ""`, the `Content-Type` returned in the response is the result configured by `cacheValueFromBodyType`; the current default configuration is `application/json`.
+- When `cacheValueFromBodyType = ""`, the `Content-Type` returned in the response is the `Content-Type` of the original request's corresponding response before caching.
+  
 ## Configuration Example
 ### Basic Configuration
 ```yaml
@@ -114,4 +121,5 @@ Pipeline syntax is also supported. For example, to take the second content where
 Refer to the [official documentation](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) for more usage examples, and test the syntax using the [GJSON Playground](https://gjson.dev/).
 
 ## Common Issues
-If the error `error status returned by host: bad argument occurs`, check whether `serviceName` correctly includes the service type suffix (.dns, etc.).
+1. If the error `error status returned by host: bad argument occurs`, check whether `serviceName` correctly includes the service type suffix (.dns, etc.).
+2. If the error `gRPC config for type.googleapis.com/envoy.config.core.v3.TypedExtensionConfig rejected: Unable to create Wasm HTTP filter`, check if `servicePort` is configured correctly; for example, `.static` service type needs to configure the port as `80`.
