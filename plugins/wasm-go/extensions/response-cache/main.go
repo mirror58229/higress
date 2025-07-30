@@ -3,14 +3,15 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/alibaba/higress/plugins/wasm-go/extensions/response-cache/config"
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/log"
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/higress-group/wasm-go/pkg/log"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 	"github.com/tidwall/gjson"
 )
 
@@ -196,24 +197,27 @@ func onHttpResponseBody(ctx wrapper.HttpContext, c config.PluginConfig, body []b
 
 	var value string
 	if c.CacheValueFromBody != "" {
-		//parse GJSON
-		respType := ctx.GetContext(CACHE_VALUE_RESP_TYPE)
-		if strings.Contains(respType, "application/json") {
-			//cache json parse response body
+		if strings.Contains(c.CacheValueFromBodyType, "application/json") {
+			//use GJSON to parse the body
 			bodyJson := gjson.ParseBytes(body)
 			if !bodyJson.Exists() {
-				log.Warnf("[onHttpResponseBody] parse json from non json response body: %s", body)
+				log.Warnf("[onHttpResponseBody] parse json from non-json response body failed, body: %s", body)
 				return types.ActionContinue
 			}
 			value = bodyJson.Get(c.CacheValueFromBody).String()
 			if strings.TrimSpace(value) == "" {
-				log.Warnf("[onHttpResponseBody] parse value from response body failed, body:%s", body)
+				log.Warnf("[onHttpResponseBody] extract json value from response body failed, body: %s", body)
 				return types.ActionContinue
 			}
 		}
-		//If there are other body types, add a parsing process here.
+		//If there are other body types, add a parsing process here, such as text/xml, etc.
 	} else {
-		value = string(body)
+		if c.CacheValueFromBodyType == "original" {
+			respType := ctx.GetContext(CACHE_VALUE_RESP_TYPE)
+			value = fmt.Sprintf("%s:%s", respType, string(body))
+		} else {
+			value = string(body)
+		}
 	}
 
 	cacheResponse(ctx, c, key.(string), value)

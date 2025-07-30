@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/alibaba/higress/plugins/wasm-go/extensions/response-cache/cache"
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/log"
+	"github.com/higress-group/wasm-go/pkg/log"
 	"github.com/tidwall/gjson"
 )
 
@@ -78,7 +78,7 @@ func (c *PluginConfig) Complete() error {
 	var err error
 	if c.cacheProviderConfig.GetProviderType() != "" {
 		log.Debugf("cache provider is set to %s", c.cacheProviderConfig.GetProviderType())
-		c.cacheProvider, err = cache.CreateProvider(c.cacheProviderConfig, log)
+		c.cacheProvider, err = cache.CreateProvider(c.cacheProviderConfig)
 		if err != nil {
 			return err
 		}

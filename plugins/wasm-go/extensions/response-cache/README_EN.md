@@ -27,6 +27,7 @@ Plugin Execution Priority: `10`
 | cache.password | string | optional | "" | Cache service password |
 | cache.timeout | uint32 | optional | 10000 | Timeout for cache service in milliseconds. Default is 10000, i.e., 10 seconds |
 | cache.cacheTTL | int | optional | 0 | Cache expiration time in seconds. Default is 0, meaning never expires |
+| cache.database | int | optional | 0 | The database ID used, limited to Redis, for example, configured as 1, corresponds to `SELECT 1`. |
 | cacheKeyPrefix | string | optional | "higress-response-cache:" | Prefix for cache keys, default is "higress-response-cache:" |                 |
 
 ### Other Configurations
