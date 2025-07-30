@@ -35,8 +35,8 @@ Plugin Execution Priority: `10`
 | cacheResponseCode | array of number | optional | 200 | Indicates the list of response status codes that support caching; the default is 200.|
 | cacheKeyFromHeader | string | required | "" | Indicates extracting the value of a fixed field from header as cache key; this field does not take effect when configured as empty; `cacheKeyFromHeader` and `cacheKeyFromBody` **only one of them can be configured as non-empty** when both are non-empty |
 | cacheKeyFromBody | string | required | "" | Indicates extracting a string as cache key from request Body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) syntax in `application/json` response format; when this field is configured as empty, it means extracting the entire body as cache key |
-| cacheValueFromBodyType | string | optional | "application/json" | Indicates the type of cached body, content-type will return this value when cache is hit; default is `application/json`; when configured as special value `original`, it means using the response type as part of the cached content, and return the original response type when cache is hit |
-| cacheValueFromBody | string | optional | "" | Indicates that when the response `Content-Type` is `application/json`, it supports extracting a string as cache value from response Body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) syntax; when this field is configured as empty, it means extracting the entire body as cache value |
+| cacheValueFromBodyType | string | optional | "application/json" | Indicates the type of cached body, content-type will return this value when cache is hit; default is `application/json`; when configured as special value `original`, it means using the response type as part of the cached content, and return the original response type when cache is hit, the `cacheValueFromBody` **must be configured as empty** in this specail case.|
+| cacheValueFromBody | string | optional | "" | Indicates that when `cacheValueFromBodyType` set to `application/json`, it supports extracting a string as cache value from response Body based on [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) syntax. When this field is configured as empty, it means extracting the entire body as cache value; but if `cacheValueFromBodyType` set to `original` the same time, the cache value will consist of both the value of the response content-type and the entire body concatenated together.|
 
 ### Cache Configuration Description
 The cache key concatenation logic is as follows:
@@ -54,7 +54,7 @@ When processed by cache plugin, the response header uses `x-cache-status` to ind
 - `x-cache-status: skip`, indicates that the cache check was skipped and the backend response result is returned; including cases where the extracted value is incorrect occurred in onHttpRequestHeaders, onHttpRequestBody and onHttpResponseHeaders
  
 When hitted the cache, the type of response is determined by `cacheValueFromBodyType`:
-- When `cacheValueFromBodyType = "orignal"`, the `Content-Type` returned in the response is the `Content-Type` of the original request's corresponding response before caching.
+- When `cacheValueFromBodyType = "orignal"`, the `Content-Type` returned in the response is the `Content-Type` of the original request's corresponding response before caching. The cache value will be set as `{Content-Type}:{ResponseBody}`.
 - When `cacheValueFromBodyType != "orignal"`, the `Content-Type` returned in the response is the result configured by `cacheValueFromBodyType`; the current default configuration is `application/json`.
 
   
@@ -86,6 +86,40 @@ curl -H "x-http-cache-key: abcd" <url>
 In this case, the cache key would be `higress-response-cache:abcd`, and the cached value would be `3`.
 
 For subsequent requests that hit the cache, the response Content-Type returned is `application/json`.
+
+### Use cacheValueFromBodyType=original
+
+If configured as follows:
+
+```yaml
+
+cache:
+  type: redis
+  serviceName: my-redis.dns
+  servicePort: 6379
+  timeout: 2000
+
+cacheKeyFromHeader: "x-http-cache-key"
+
+cacheValueFromBodyType: "original"
+cacheValueFromBody: ""
+```
+
+Assumed Request
+
+```bash
+# Request
+curl -H "x-http-cache-key: abcd" <url>
+
+# Response
+Content-Type: image/heic
+## Response body
+ftypheicmif1heicmeta.....
+```
+
+In this case, the cache key would be `higress-response-cache:abcd`, and the cached value would be `image/heic:ftypheicmif1heicmeta.....`.
+
+For subsequent requests that hit the cache, the response Content-Type returned is `image/heic`, and the response body is `ftypheicmif1heicmeta.....`.
 
 ### Response Body as Cache Value
 To cache all response bodies, configure as follows:
