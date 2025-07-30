@@ -5,12 +5,6 @@ keywords: [higress,response cache]
 description: 通用响应缓存插件配置参考
 ---
 
-**Note**
-
-> 需要数据面的proxy wasm版本大于等于0.2.100
-> 编译时，需要带上版本的tag，例如：`tinygo build -o main.wasm -scheduler=none -target=wasi -gc=custom -tags="custommalloc nottinygc_finalizer proxy_wasm_version_0_2_100" ./`
->
-
 ## 功能说明
 
 通用响应缓存插件，支持从请求头/请求体中提取key，从响应体中提取value并缓存起来；下次请求时，如果请求头/请求体中携带了相同的key，则直接返回缓存中的value，而不会请求后端服务。
