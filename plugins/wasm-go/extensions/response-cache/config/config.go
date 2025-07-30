@@ -5,26 +5,24 @@ import (
 	"strconv"
 
 	"github.com/alibaba/higress/plugins/wasm-go/extensions/response-cache/cache"
-	"github.com/alibaba/higress/plugins/wasm-go/pkg/wrapper"
+	"github.com/alibaba/higress/plugins/wasm-go/pkg/log"
 	"github.com/tidwall/gjson"
 )
 
 type PluginConfig struct {
+	cacheProvider       cache.Provider
+	cacheProviderConfig cache.ProviderConfig
 
-	cacheProvider     cache.Provider
-	cacheProviderConfig     cache.ProviderConfig
-
-	CacheKeyFromHeader   string 
-	CacheKeyFromBody	 string
+	CacheKeyFromHeader string
+	CacheKeyFromBody   string
 
 	CacheValueFromBodyType string
-	CacheValueFromBody   string
+	CacheValueFromBody     string
 
 	CacheResponseCode []int32
-
 }
 
-func (c *PluginConfig) FromJson(json gjson.Result, log wrapper.Log) {
+func (c *PluginConfig) FromJson(json gjson.Result) {
 	c.cacheProviderConfig.FromJson(json.Get("cache"))
 	c.CacheKeyFromHeader = json.Get("cacheKeyFromHeader").String()
 	c.CacheKeyFromBody = json.Get("cacheKeyFromBody").String()
@@ -33,11 +31,11 @@ func (c *PluginConfig) FromJson(json gjson.Result, log wrapper.Log) {
 	if c.CacheValueFromBodyType == "" {
 		c.CacheValueFromBodyType = "application/json"
 	}
-	
+
 	c.CacheValueFromBody = json.Get("cacheValueFromBody").String()
 
 	cacheResponseCode := json.Get("cacheResponseCode").Array()
-    c.CacheResponseCode = make([]int32, 0, len(cacheResponseCode))
+	c.CacheResponseCode = make([]int32, 0, len(cacheResponseCode))
 	for _, v := range cacheResponseCode {
 		responseCode, err := strconv.Atoi(v.String())
 		if err != nil || responseCode < 100 || responseCode > 999 {
@@ -49,7 +47,7 @@ func (c *PluginConfig) FromJson(json gjson.Result, log wrapper.Log) {
 
 	if len(c.CacheResponseCode) == 0 {
 		c.CacheResponseCode = []int32{200}
-    }
+	}
 }
 
 func (c *PluginConfig) Validate() error {
@@ -64,14 +62,14 @@ func (c *PluginConfig) Validate() error {
 			return err
 		}
 	}
-	
+
 	// cache key cannot be all set
 	if c.CacheKeyFromHeader != "" && c.CacheKeyFromBody != "" {
-		return fmt.Errorf("cacheKeyFromHeader and cacheKeyFromBody cannot be all set")
+		return fmt.Errorf("cacheKeyFromHeader and cacheKeyFromBody cannot be all set to non value")
 	}
 	return nil
 }
-func (c *PluginConfig) Complete(log wrapper.Log) error {
+func (c *PluginConfig) Complete() error {
 	var err error
 	if c.cacheProviderConfig.GetProviderType() != "" {
 		log.Debugf("cache provider is set to %s", c.cacheProviderConfig.GetProviderType())
@@ -80,12 +78,11 @@ func (c *PluginConfig) Complete(log wrapper.Log) error {
 			return err
 		}
 	} else {
-		log.Info("cache provider is not configured")
+		log.Infof("cache provider is not configured")
 		c.cacheProvider = nil
 	}
 	return nil
 }
-
 
 func (c *PluginConfig) GetCacheProvider() cache.Provider {
 	return c.cacheProvider
