@@ -25,7 +25,6 @@ const (
 )
 
 func main() {
-	// CreateClient()
 	wrapper.SetCtx(
 		PLUGIN_NAME,
 		wrapper.ParseConfig(parseConfig),

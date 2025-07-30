@@ -50,7 +50,7 @@ type ProviderConfig struct {
 	// @Description zh-CN 缓存过期时间，单位为秒。默认值是0，即永不过期
 	cacheTTL int
 	// @Title 缓存 Key 前缀
-	// @Description 缓存 Key 的前缀，默认值为 "higressAiCache:"
+	// @Description 缓存 Key 的前缀，默认值为 "higress-resp-cache:"
 	cacheKeyPrefix string
 	// @Title redis database
 	// @Description 指定 redis 的 database，默认使用0
