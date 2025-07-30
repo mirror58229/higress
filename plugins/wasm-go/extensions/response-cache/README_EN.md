@@ -54,8 +54,9 @@ When processed by cache plugin, the response header uses `x-cache-status` to ind
 - `x-cache-status: skip`, indicates that the cache check was skipped and the backend response result is returned; including cases where the extracted value is incorrect occurred in onHttpRequestHeaders, onHttpRequestBody and onHttpResponseHeaders
  
 When hitted the cache, the type of response is determined by `cacheValueFromBodyType`:
-- When `cacheValueFromBodyType != ""`, the `Content-Type` returned in the response is the result configured by `cacheValueFromBodyType`; the current default configuration is `application/json`.
-- When `cacheValueFromBodyType = ""`, the `Content-Type` returned in the response is the `Content-Type` of the original request's corresponding response before caching.
+- When `cacheValueFromBodyType = "orignal"`, the `Content-Type` returned in the response is the `Content-Type` of the original request's corresponding response before caching.
+- When `cacheValueFromBodyType != "orignal"`, the `Content-Type` returned in the response is the result configured by `cacheValueFromBodyType`; the current default configuration is `application/json`.
+
   
 ## Configuration Example
 ### Basic Configuration

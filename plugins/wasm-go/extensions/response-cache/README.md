@@ -68,8 +68,8 @@ description: 通用响应缓存插件配置参考
 - `x-cache-status: skip` ，表示跳过缓存检查，返回后端响应结果；包含请求头、请求体、响应头阶段所有提取值不正确的情况
  
 命中缓存时，响应类型由`cacheValueFromBodyType`决定：
-- 当`cacheValueFromBodyType != ""`时，响应中返回的`Content-Type`为`cacheValueFromBodyType`配置的结果；当前默认配置为`application/json`。
-- 当`cacheValueFromBodyType = ""`时，响应中返回的`Content-Type`为原请求对应的响应缓存前的`Content-Type`。
+- 当`cacheValueFromBodyType = "original"`时，响应中返回的`Content-Type`为原请求对应的响应缓存前的`Content-Type`。
+- 当`cacheValueFromBodyType != "original"`时，响应中返回的`Content-Type`为`cacheValueFromBodyType`配置的结果；当前默认配置为`application/json`。
 
 ## 配置示例
 ### 基础配置
