@@ -65,7 +65,7 @@ description: 通用响应缓存插件配置参考
 命中缓存插件的情况下，返回的响应头使用`x-cache-status`表示有三种状态：
 - `x-cache-status: hit` ，表示命中缓存，直接返回缓存内容
 - `x-cache-status: miss` ，表示未命中缓存，返回后端响应结果
-- `x-cache-status: skip` ，表示跳过缓存检查，返回后端响应结果；包含所有提取值不正确的情况
+- `x-cache-status: skip` ，表示跳过缓存检查，返回后端响应结果；包含请求头、请求体、响应头阶段所有提取值不正确的情况
  
 命中缓存时，响应类型由`cacheValueFromBodyType`决定：
 - 当`cacheValueFromBodyType != ""`时，响应中返回的`Content-Type`为`cacheValueFromBodyType`配置的结果；当前默认配置为`application/json`。

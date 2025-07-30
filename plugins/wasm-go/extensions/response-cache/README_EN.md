@@ -51,7 +51,7 @@ The cache key concatenation logic is as follows:
 When processed by cache plugin, the response header uses `x-cache-status` to indicate three states:
 - `x-cache-status: hit`, indicates that the cache was hit and the cached content is returned directly
 - `x-cache-status: miss`, indicates that the cache was not hit and the backend response result is returned
-- `x-cache-status: skip`, indicates that the cache check was skipped and the backend response result is returned; including all cases where the extracted value is incorrect
+- `x-cache-status: skip`, indicates that the cache check was skipped and the backend response result is returned; including cases where the extracted value is incorrect occurred in onHttpRequestHeaders, onHttpRequestBody and onHttpResponseHeaders
  
 When hitted the cache, the type of response is determined by `cacheValueFromBodyType`:
 - When `cacheValueFromBodyType != ""`, the `Content-Type` returned in the response is the result configured by `cacheValueFromBodyType`; the current default configuration is `application/json`.
