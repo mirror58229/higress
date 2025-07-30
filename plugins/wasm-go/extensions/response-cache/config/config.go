@@ -67,6 +67,11 @@ func (c *PluginConfig) Validate() error {
 	if c.CacheKeyFromHeader != "" && c.CacheKeyFromBody != "" {
 		return fmt.Errorf("cacheKeyFromHeader and cacheKeyFromBody cannot be all set to non value")
 	}
+
+	// cache body cannot be set when cacheValueFromBodyType=original
+	if c.CacheValueFromBodyType == "original" && c.CacheValueFromBody != "" {
+		return fmt.Errorf("cacheValueFromBody cannot be set when cacheValueFromBodyType=original")
+	}
 	return nil
 }
 func (c *PluginConfig) Complete() error {

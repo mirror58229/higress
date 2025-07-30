@@ -11,7 +11,7 @@ import (
 	"github.com/tidwall/resp"
 )
 
-// CheckCacheForKey checks if the key is in the cache, or triggers similarity search if not found.
+// CheckCacheForKey checks if the key is in the cache
 func CheckCacheForKey(key string, ctx wrapper.HttpContext, c config.PluginConfig) error {
 	activeCacheProvider := c.GetCacheProvider()
 	if activeCacheProvider == nil {
@@ -60,14 +60,28 @@ func processCacheHit(key string, response string, ctx wrapper.HttpContext, c con
 
 	ctx.SetContext(CACHE_KEY_CONTEXT_KEY, nil)
 
-	//TODO: 对于CacheValueFromBodyType为空的情况，需要从
 	contentType := fmt.Sprintf("%s", c.CacheValueFromBodyType)
+	body := response
+
+	if c.CacheValueFromBodyType == "original" {
+		//Split the response into content type and body
+		parts := strings.SplitN(response, ":", 2)
+		if len(parts) == 2 {
+			contentType = parts[0]
+			body = parts[1]
+		} else {
+			log.Warnf("[processCacheHit] Invalid cache value when CacheValueFromBodyType=original key:%s value:%s", key, response)
+			proxywasm.ResumeHttpRequest()
+			return
+		}
+	}
+
 	headers := [][2]string{
 		{"content-type", contentType},
 		{"x-cache-status", "hit"},
 	}
 
-	proxywasm.SendHttpResponseWithDetail(200, "response-cache.hit", headers, []byte(response), -1)
+	proxywasm.SendHttpResponseWithDetail(200, "response-cache.hit", headers, []byte(body), -1)
 
 }
 

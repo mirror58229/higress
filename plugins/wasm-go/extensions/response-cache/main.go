@@ -17,6 +17,7 @@ import (
 const (
 	PLUGIN_NAME           = "response-cache"
 	CACHE_KEY_CONTEXT_KEY = "cacheKey"
+	CACHE_VALUE_RESP_TYPE = "cacheResponeseType"
 	SKIP_CACHE_HEADER     = "x-higress-skip-response-cache"
 
 	DEFAULT_MAX_BODY_BYTES uint32 = 10 * 1024 * 1024
@@ -165,7 +166,21 @@ func onHttpResponseHeaders(ctx wrapper.HttpContext, c config.PluginConfig) types
 	}
 
 	if ctx.GetContext(CACHE_KEY_CONTEXT_KEY) != nil {
+		if c.CacheValueFromBodyType == "original" {
+			// If CacheValueFromBodyType is original, use the original response content-type
+			respType, err := proxywasm.GetHttpResponseHeader("content-type")
+			if err != nil {
+				log.Errorf("[onHttpResponseHeader] get content-type error: %s, skip cache", err)
+				proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
+				ctx.DontReadResponseBody()
+				return types.ActionContinue
+			}
+			ctx.SetContext(CACHE_VALUE_RESP_TYPE, respType)
+		} else {
+			ctx.SetContext(CACHE_VALUE_RESP_TYPE, c.CacheValueFromBodyType)
+		}
 		proxywasm.AddHttpResponseHeader("x-cache-status", "miss")
+
 	}
 	ctx.SetResponseBodyBufferLimit(DEFAULT_MAX_BODY_BYTES)
 	return types.ActionContinue
@@ -181,8 +196,9 @@ func onHttpResponseBody(ctx wrapper.HttpContext, c config.PluginConfig, body []b
 
 	var value string
 	if c.CacheValueFromBody != "" {
-		//TODO: body不是json，但是配置了gjson
-		if strings.Contains(c.CacheValueFromBodyType, "application/json") {
+		//parse GJSON
+		respType := ctx.GetContext(CACHE_VALUE_RESP_TYPE)
+		if strings.Contains(respType, "application/json") {
 			//cache json parse response body
 			bodyJson := gjson.ParseBytes(body)
 			if !bodyJson.Exists() {
