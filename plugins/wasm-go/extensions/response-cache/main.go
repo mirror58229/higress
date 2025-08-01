@@ -1,5 +1,5 @@
 // 这个文件中主要将OnHttpRequestHeaders、OnHttpRequestBody、OnHttpResponseHeaders、OnHttpResponseBody这四个函数实现
-// 其中的缓存思路调用cache.go中的逻辑
+// 其中的缓存思路调用core.go中的逻辑
 package main
 
 import (
