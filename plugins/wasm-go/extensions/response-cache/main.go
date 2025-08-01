@@ -166,11 +166,18 @@ func onHttpResponseHeaders(ctx wrapper.HttpContext, c config.PluginConfig) types
 	}
 
 	if ctx.GetContext(CACHE_KEY_CONTEXT_KEY) != nil {
-		if c.CacheValueFromBodyType == "original" {
+		if c.CacheValueFromBodyType == "original" || c.CacheValueFromBody != "" {
 			// If CacheValueFromBodyType is original, use the original response content-type
+			// If CacheValueFromBody is not empty, the content-type must to application/json
 			respType, err := proxywasm.GetHttpResponseHeader("content-type")
 			if err != nil {
 				log.Errorf("[onHttpResponseHeader] get content-type error: %s, skip cache", err)
+				proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
+				ctx.DontReadResponseBody()
+				return types.ActionContinue
+			}
+			if c.CacheKeyFromBody != "" && !strings.Contains(respType, "application/json") {
+				log.Errorf("[onHttpResponseHeader] cacheKeyFromBody is not empty while content-type:%s is not json, skip cache.", respType)
 				proxywasm.AddHttpResponseHeader("x-cache-status", "skip")
 				ctx.DontReadResponseBody()
 				return types.ActionContinue
