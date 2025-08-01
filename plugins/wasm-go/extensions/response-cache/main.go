@@ -195,9 +195,10 @@ func onHttpResponseBody(ctx wrapper.HttpContext, c config.PluginConfig, body []b
 	}
 
 	var value string
+	respType := ctx.GetStringContext(CACHE_VALUE_RESP_TYPE, "")
 	if c.CacheValueFromBody != "" {
-		if strings.Contains(c.CacheValueFromBodyType, "application/json") {
-			//use GJSON to parse the body
+		if strings.Contains(respType, "application/json") {
+			//If respType is json, use GJSON to parse the body
 			bodyJson := gjson.ParseBytes(body)
 			if !bodyJson.Exists() {
 				log.Warnf("[onHttpResponseBody] parse json from non-json response body failed, body: %s", body)
@@ -212,7 +213,6 @@ func onHttpResponseBody(ctx wrapper.HttpContext, c config.PluginConfig, body []b
 		//If there are other body types, add a parsing process here, such as text/xml, etc.
 	} else {
 		if c.CacheValueFromBodyType == "original" {
-			respType := ctx.GetContext(CACHE_VALUE_RESP_TYPE)
 			value = fmt.Sprintf("%s:%s", respType, string(body))
 		} else {
 			value = string(body)
