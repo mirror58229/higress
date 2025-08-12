@@ -43,7 +43,7 @@ description: 通用响应缓存插件配置参考
 | --- | --- | --- | --- | --- |
 | cacheResponseCode | array of number | optional | 200 | 表示支持缓存的响应状态码列表；默认为200|
 | cacheKeyFromHeader | string | required | "" | 表示提取header中的固定字段的值作为缓存key；该字段配置为空时不生效；`cacheKeyFromHeader`和`cacheKeyFromBody`**非空情况下只支持配置一项**，不允许同时配置为非空|
-| cacheKeyFromBody | string | required | "" | 表示按`application/json`响应格式，从请求 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串作为缓存key；该字段配置为空时，表示提取所有body作为缓存key |
+| cacheKeyFromBody | string | required | "" | 表示当响应内容为`application/json`时，从请求 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串作为缓存key，响应非`application/json`时跳过；该字段配置为空时，表示提取所有body作为缓存key |
 | cacheValueFromBodyType | string | optional | "application/json" | 表示缓存body的类型，命中cache时content-type会返回该值；默认为`application/json`；当配置为特殊值`original`时，表明使用响应类型作为缓存内容一部分，并在命中时提取响应类型返回给用户，此时`cacheValueFromBody`只允许**配置为空** |
 | cacheValueFromBody | string | optional | "" | 表示当`cacheValueFromBodyType`配置包含`application/json`时，支持从响应 Body 中基于 [GJSON PATH](https://github.com/tidwall/gjson/blob/master/SYNTAX.md) 语法提取字符串作为缓存value。该字段配置为空时，表示提取所有body作为缓存value；如果为空时且`cacheValueFromBodyType = original`，表示使用Content-Type结果+所有body作为缓存value。|
 
